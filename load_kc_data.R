@@ -1,6 +1,6 @@
 #### Purpose: Load KC-assigned current and historical data
 # Eli Kern, PHSKC (APDE)
-# 2021-02
+# 2021-05
 
 #### STEP 1: Set tokens and file paths ####
 #Set REDCap API tokens
@@ -17,7 +17,7 @@ col_types <- cols(.default = col_character())
 
 system.time(kc_cc_current_raw <- REDCapR::redcap_read(
   redcap_uri = redcap_uri,
-  token = keyring::key_get("token_phskc_cc"), #Retrieve Eli's token for "Household Contact Tracing" Project frok keyring package
+  token = keyring::key_get("token_phskc_cc"), #Retrieve Eli's token for "Household Contact Tracing" Project from keyring package
   batch_size = 5000L,
   interbatch_delay = 1,
   col_types = col_types
