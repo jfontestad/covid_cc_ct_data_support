@@ -122,5 +122,5 @@ kc_cc_archive <- kc_cc_archive_raw %>%
 
 
 #### STEP 4: Compare columns in current and archived Household Contact Tracing data, and bind
-janitor::compare_df_cols(kc_cc_archive, kc_cc_current, return = "mismatch", bind_method = "rbind")
+kc_cc_archive_current_coldiff <- nrow(janitor::compare_df_cols(kc_cc_archive, kc_cc_current, return = "mismatch", bind_method = "rbind"))
 kc_cc_complete <- bind_rows(kc_cc_current, kc_cc_archive) %>% distinct()
