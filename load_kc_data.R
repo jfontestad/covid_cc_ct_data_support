@@ -5,7 +5,7 @@
 #### STEP 1: Set tokens and file paths ####
 #Set REDCap API tokens
 redcap_uri <- "https://redcap.iths.org/api/"
-
+#keyring::key_set("token_phskc_cc") #Run once per machine to store API token using keyring package
 
 #Set file paths
 archive_import <- "//Phshare01/cdi_share/Outbreaks & Investigations/Outbreaks 2020/2019-nCoV/Contact Tracing/Household Contact Tracing Project - Archive/Old data/Cumulative/"
@@ -17,7 +17,7 @@ col_types <- cols(.default = col_character())
 
 system.time(kc_cc_current_raw <- REDCapR::redcap_read(
   redcap_uri = redcap_uri,
-  token = token_phskc_cc,
+  token = keyring::key_get("token_phskc_cc"), #Retrieve Eli's token for "Household Contact Tracing" Project frok keyring package
   batch_size = 5000L,
   interbatch_delay = 1,
   col_types = col_types
