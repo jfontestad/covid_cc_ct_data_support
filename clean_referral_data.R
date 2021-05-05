@@ -171,7 +171,7 @@ rm(kc_cc_test_ref)
 
 
 #### STEP 3: Clean DOH-assigned household referral data, adapting from code for PHSKC-assigned households ####
-doh_referral_form <- doh_cc_current %>% 
+doh_referral_form <- doh_cc_current_clustered %>% 
   
   select(arm, record_id, referral_timedt,
          
@@ -289,7 +289,7 @@ doh_referral_form <- doh_cc_current %>%
 
 
 #### STEP 4: Identify DOH-assigned households who received testing referrals ####
-doh_cc_test_ref <- doh_cc_current %>%
+doh_cc_test_ref <- doh_cc_current_clustered %>%
   
   filter(testing_plans == "REFERRED") %>%
   
@@ -439,8 +439,15 @@ doh_referral_based_demo <- select(doh_referral_form, agency, arm, record_id, lan
     dob_norm = ifelse(sum(!is.na(dob_norm)) == 0, NA_character_, as.character(min(as.Date(dob_norm, origin = origin), na.rm = T))),
     
     #Take maximum language when multiple values exist for an arm-record ID
-    language_norm = ifelse(sum(!is.na(language_norm)) == 0, NA_character_, as.character(max(as.integer(language_norm), na.rm = T)))
-  ) %>%
+    language_norm = ifelse(sum(!is.na(language_norm)) == 0, NA_character_, as.character(max(as.integer(language_norm), na.rm = T))),
+    
+    #Set race to multiple race if more than race reported at household
+    race_eth_count = n_distinct(race_eth_norm),
+    race_eth_norm = case_when(
+      race_eth_count > 1 ~ "Multiple race",
+      TRUE ~ race_eth_norm
+    )) %>%
+  select(-race_eth_count) %>%
   ungroup() %>%
   distinct() %>%
   
