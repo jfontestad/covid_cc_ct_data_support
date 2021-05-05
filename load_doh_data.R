@@ -14,7 +14,7 @@ redcap_uri <- "https://redcap.iths.org/api/"
 #Run time: ~1 min
 col_types <- cols(.default = col_character())
 
-system.time(doh_cc_current <- REDCapR::redcap_read(
+system.time(doh_cc_current_raw <- REDCapR::redcap_read(
   redcap_uri = redcap_uri,
   token = keyring::key_get("token_doh_cc"), #Retrieve Eli's token for "Care Coordination - COVID19" Project from keyring package
   batch_size = 5000L,
@@ -23,3 +23,7 @@ system.time(doh_cc_current <- REDCapR::redcap_read(
 )$data)
 
 rm(col_types)
+
+#Create arm variable
+doh_cc_current <- doh_cc_current_raw %>%
+  mutate(arm = "doh-assigned")
