@@ -125,7 +125,9 @@ kc_referral_form <- kc_cc_complete %>%
   filter(!is.na(referral_date)) %>%
   
   #Drop any records with "dup" chw_status
-  filter(chw_status != "dup") %>%
+  mutate(dup_flag = case_when(chw_status == "dup" ~ 1, TRUE ~ 0)) %>%
+  filter(dup_flag == 0) %>%
+  select(-dup_flag) %>%
   
   #Drop raw versions of recoded variables
   select(-iq_motel:-swiq_referral, -har_interest:-referrals___5) %>%
@@ -279,7 +281,9 @@ doh_referral_form <- doh_cc_current_clustered %>%
   filter(!is.na(referral_date)) %>%
   
   #Drop any records with "dup" chw_status
-  filter(chw_status != "dup") %>%
+  mutate(dup_flag = case_when(chw_status == "dup" ~ 1, TRUE ~ 0)) %>%
+  filter(dup_flag == 0) %>%
+  select(-dup_flag) %>%
   
   #Drop raw versions of recoded variables
   select(-iq_motel:-swiq_referral, -har_interest) %>%
