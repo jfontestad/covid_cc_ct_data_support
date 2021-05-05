@@ -34,12 +34,15 @@ doh_cc_current <- doh_cc_current_raw %>%
   
   mutate(arm = "doh-assigned") %>%
   
+  #Rename record ID variable
+  rename(redcap_record_id = record_id) %>%
+  
   #Remove dummy records from survey submission testing
   mutate(drop_flag = case_when(
     #drop records with missing names submitted via survey
     record_form_svy == "survey" & is.na(first_name_c) ~ 1,
     #drop specific records observed to be dummy records, submitted via survey
-    record_id %in% c("9842429051", "9842429060", "9842429045", "9842429033", "9842429050") ~ 1,
+    redcap_record_id %in% c("9842429051", "9842429060", "9842429045", "9842429033", "9842429050") ~ 1,
     TRUE ~ 0
   )) %>%
   filter(drop_flag != 1) %>%
