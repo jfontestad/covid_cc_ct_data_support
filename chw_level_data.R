@@ -85,5 +85,5 @@ kc_language_missing_per <- filter(count(filter(demo_qa, agency == "phskc"), lang
 
 
 ## QA to make sure that dataset has only one row per arm-record ID-referral_timedt
-complete_analytic_distinct_row_percent <- filter(complete_chw_analytic %>% group_by(arm, record_id, referral_timedt) %>% mutate(row_count = n()) %>% ungroup() %>% count(row_count) %>%
+complete_analytic_distinct_row_percent <- filter(complete_chw_analytic %>% group_by(agency, arm, record_id, referral_timedt) %>% mutate(row_count = n()) %>% ungroup() %>% count(row_count) %>%
                                               mutate(per = round2(n/sum(n, na.rm = T)*100, 1)), row_count == 1)$per
