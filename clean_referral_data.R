@@ -182,7 +182,7 @@ doh_referral_form <- doh_cc_current_clustered %>%
     utilities, har_interest, call_attempt,
     
     #CHW referral variables
-    chw_assigned, chw_firstcall, chw_status, chw_closed, chw_svc_type___chap, chw_svc_type___insurance, chw_svc_type___referrals_hc,
+    chw_assigned, chw_assigned_n, chw_firstcall, chw_status, chw_closed, chw_svc_type___chap, chw_svc_type___insurance, chw_svc_type___referrals_hc,
     chw_svc_type___medicare_savings, chw_svc_type___cash, chw_svc_type___charitycare, chw_svc_type___utilities, chw_svc_type___food, chw_svc_type___snap, 
     chw_svc_type___food_ref, chw_svc_type___housing, chw_svc_type___orca, chw_svc_type___legal, chw_svc_type___mh, chw_svc_type___grocery, chw_svc_type___ppe,
     chw_svc_type___edu, chw_svc_type___financial_advice, chw_svc_type___emotional, chw_svc_type___swiq, chw_svc_type___har, chw_svc_type___other, chw_svc_type_othspec,
@@ -202,47 +202,60 @@ doh_referral_form <- doh_cc_current_clustered %>%
         TRUE ~ lubridate::NA_Date_),
       chw_firstcall_date = as.Date(chw_firstcall, origin = origin),
       chw_closed_date = as.Date(chw_closed, origin = origin),
+      
+      #Replace missing referral_timedt with other timedt variables is present
+      referral_timedt = case_when(
+        !is.na(referral_timedt) ~ referral_timedt,
+        !is.na(chw_firstcall) ~ chw_firstcall,
+        !is.na(call_attempt) ~ call_attempt,
+        TRUE ~ NA_character_),
     
-    #calculate time interval stats in hours
-    referral_to_chw_hours = round(as.numeric(difftime(chw_firstcall, referral_timedt, units = "hours")), 1),
-    chw_open_to_closed_hours = round(as.numeric(difftime(chw_closed, chw_firstcall, units = "hours")), 1),
+      #calculate time interval stats in hours
+      referral_to_chw_hours = round(as.numeric(difftime(chw_firstcall, referral_timedt, units = "hours")), 1),
+      chw_open_to_closed_hours = round(as.numeric(difftime(chw_closed, chw_firstcall, units = "hours")), 1),
+      
+      #Normalize chw assigned variable
+      chw_assigned = case_when(
+        !is.na(chw_assigned_n) ~ chw_assigned_n,
+        !is.na(chw_assigned) ~ chw_assigned,
+        TRUE ~ NA_character_),
     
-    #CHW performance metrics
-    referral_to_chw_lte_24h = case_when(referral_to_chw_hours <= 24 ~ 1L, TRUE ~ 0L),
+      #CHW performance metrics
+      referral_to_chw_lte_24h = case_when(referral_to_chw_hours <= 24 ~ 1L, TRUE ~ 0L),
+      
+      #convert date-times to character for easier exporting
+      referral_timedt = as.character(referral_timedt),
+      chw_firstcall = as.character(chw_firstcall),
+      chw_closed = as.character(chw_closed),
+      
+      #create agency variable
+      agency = "doh",
+      
+      #create CT referral variables
+      chw = case_when(
+        (cash_food=="2" | healthcare=="2" | healthinsurance=="2" | medical_costs=="2" | utilities=="2" | swiq_referral=="1") ~ 1L,
+        TRUE ~ 0L),
+      
+      utilities = case_when(utilities %in% c("1", "2") ~ 1L, TRUE ~ 0L),
+      cash_food = case_when(cash_food %in% c("1", "2") ~ 1L, TRUE ~ 0L),
+      healthcare = case_when(healthcare %in% c("1", "2") ~ 1L, TRUE ~ 0L),
+      medical_costs = case_when(medical_costs %in% c("1", "2") ~ 1L, TRUE ~ 0L),
+      healthinsurance = case_when(healthinsurance %in% c("1", "2") ~ 1L, TRUE ~ 0L),
+      swiq = case_when(swiq_referral == "1" ~ 1L, TRUE ~ 0L),
+      tpr = case_when(tpr_referral == "1" ~ 1L, TRUE ~ 0L),
+      har = case_when(har_interest == "1" ~ 1L, TRUE ~ 0L),
     
-    #convert date-times to character for easier exporting
-    referral_timedt = as.character(referral_timedt),
-    chw_firstcall = as.character(chw_firstcall),
-    chw_closed = as.character(chw_closed),
-    
-    #create agency variable
-    agency = "doh",
-    
-    #create CT referral variables
-    chw = case_when(
-      (cash_food=="2" | healthcare=="2" | healthinsurance=="2" | medical_costs=="2" | utilities=="2" | swiq_referral=="1") ~ 1L,
-      TRUE ~ 0L),
-    
-    utilities = case_when(utilities %in% c("1", "2") ~ 1L, TRUE ~ 0L),
-    cash_food = case_when(cash_food %in% c("1", "2") ~ 1L, TRUE ~ 0L),
-    healthcare = case_when(healthcare %in% c("1", "2") ~ 1L, TRUE ~ 0L),
-    medical_costs = case_when(medical_costs %in% c("1", "2") ~ 1L, TRUE ~ 0L),
-    healthinsurance = case_when(healthinsurance %in% c("1", "2") ~ 1L, TRUE ~ 0L),
-    swiq = case_when(swiq_referral == "1" ~ 1L, TRUE ~ 0L),
-    tpr = case_when(tpr_referral == "1" ~ 1L, TRUE ~ 0L),
-    har = case_when(har_interest == "1" ~ 1L, TRUE ~ 0L),
-    
-    groceries = case_when(
-      !is.na(need_met_dt) | grocery_referral == "3" ~ 1L,
-      TRUE ~ 0L),
-    
-    medconsult = case_when(
-      med_referrals == "MEDCONSULT" ~ 1L,
-      TRUE ~ 0L),  
-    
-    iqmotel = case_when(
-      iq_motel == "1" ~ 1L,
-      TRUE ~ 0L)) %>%
+      groceries = case_when(
+        !is.na(need_met_dt) | grocery_referral == "3" ~ 1L,
+        TRUE ~ 0L),
+      
+      medconsult = case_when(
+        med_referrals == "MEDCONSULT" ~ 1L,
+        TRUE ~ 0L),  
+      
+      iqmotel = case_when(
+        iq_motel == "1" ~ 1L,
+        TRUE ~ 0L)) %>%
     
     #create CHW referral variables
     mutate_at(
@@ -286,7 +299,7 @@ doh_referral_form <- doh_cc_current_clustered %>%
   select(-dup_flag) %>%
   
   #Drop raw versions of recoded variables
-  select(-iq_motel:-swiq_referral, -har_interest) %>%
+  select(-iq_motel:-swiq_referral, -har_interest, -chw_assigned_n) %>%
   
   #Make sure dataset is distinct
   distinct()
