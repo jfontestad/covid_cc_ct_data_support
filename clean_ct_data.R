@@ -197,7 +197,24 @@ doh_cc_household <- doh_cc_current_clustered %>%
       TRUE ~ NA_character_)
   ) %>%
   
-  select(agency, arm, record_id, redcap_record_id, form_created, hh_size, household_zipcode)
+  #drop records with no form_created date
+  filter(!is.na(form_created)) %>%
+  
+  select(agency, arm, record_id, form_created, hh_size, household_zipcode) %>%
+  distinct()
+
+## Group by record_id and select a single value for form_created, hh_size, and household_zip_code
+doh_cc_household <- doh_cc_household %>%
+  
+  group_by(agency, arm, record_id) %>%
+  summarize(
+    form_created = max(form_created, na.rm = T),
+    hh_size = ifelse(sum(!is.na(hh_size)) == 0, NA_integer_, max(hh_size, na.rm = T)),
+    household_zipcode = ifelse(sum(!is.na(household_zipcode)) == 0, NA_character_, min(household_zipcode, na.rm = T))
+  )
+  
+#QA check to make sure 1 row per record ID
+doh_cc_household_row_count <- nrow(doh_cc_household %>% group_by(arm, record_id) %>% mutate(row_count = n()) %>% ungroup() %>% count(row_count))
 
 
 #### STEP 3: Bind PHSKC-assigned and DOH-assigned case, contact and household data ####
