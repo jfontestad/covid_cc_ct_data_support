@@ -26,4 +26,10 @@ rm(col_types)
 
 #Create arm variable
 doh_cc_current <- doh_cc_current_raw %>%
+  
+  #Convert select variables to dates
+  mutate_at(
+    vars(har_startdt),
+    ~(as.Date(., origin = origin))) %>%
+  
   mutate(arm = "doh-assigned")
