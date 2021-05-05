@@ -8,7 +8,9 @@
 kc_wdrs <- kc_cc_complete %>% select(arm, record_id, contains("wdrs"))
 kc_wdrs_long <- pivot_longer(kc_wdrs, !arm:record_id, names_to = "wdrs_id_type", values_to = "wdrs_id") %>%
   mutate(wdrs_id = str_trim(wdrs_id, side = "both")) %>% #remove white space around WDRS IDs
-  filter(wdrs_id != "" & !is.na(wdrs_id) & str_sub(wdrs_id, 1, 1) == "1" & str_length(wdrs_id) == 9 & str_detect(wdrs_id, "[:punct:]") == F)
+  filter(wdrs_id != "" & !is.na(wdrs_id) & str_sub(wdrs_id, 1, 1) == "1" & str_length(wdrs_id) == 9 & str_detect(wdrs_id, "[:punct:]") == F) %>%
+  mutate(agency = "phskc") %>%
+  select(agency, arm, record_id, wdrs_id_type, wdrs_id)
 
 ## Count cases per arm 1 household (works only for old phase data)
 kc_cases_per_house <- kc_cc_complete %>%
@@ -123,7 +125,7 @@ kc_cc_household <- kc_cc_household %>%
 #### STEP 2: Process case and contact data for DOH-assigned household data ####
 
 ## Pull WDRS IDs for all cases, keeping only valid WDRS IDs
-doh_cc_wdrs <- select(doh_cc_current, record_id, wdrs_event_id, first_name_c, last_name_c) %>%
+doh_cc_wdrs <- select(doh_cc_current, redcap_record_id, wdrs_event_id, first_name_c, last_name_c) %>%
   
   rename(wdrs_id = wdrs_event_id) %>%
   
@@ -132,7 +134,7 @@ doh_cc_wdrs <- select(doh_cc_current, record_id, wdrs_event_id, first_name_c, la
   
   #Variable processing, renaming, etc.
   mutate(agency = "doh", arm = "doh-assigned") %>%
-  select(agency, arm, record_id, wdrs_id) %>%
+  select(agency, arm, redcap_record_id, wdrs_id) %>%
   distinct()
 
 ## Import household clustering dataset
@@ -147,23 +149,26 @@ rm(col_types)
 doh_cc_wdrs_household <- left_join(doh_cc_wdrs, case_household_cluster, by = c("wdrs_id" = "CASE_ID")) %>%
   
   #Assign household ID based on following logic: 1) cluster based on hh address, 2) cluster based on hh lat/long, 3) cluster based on REDCap record ID (i.e. phone #)
-  mutate(record_id_hh = case_when(
+  mutate(record_id = case_when(
     !is.na(householdid) ~ householdid,
     !is.na(locationid) & is.na(householdid) ~ locationid,
-    is.na(householdid) & is.na(locationid) ~ record_id,
+    is.na(householdid) & is.na(locationid) ~ redcap_record_id,
     TRUE ~ NA_character_
-  ))
-
-## Add new record_id to doh_cc_current dataframe for use in referral date cleaning
-doh_cc_current_clustered <- left_join(doh_cc_current, select(doh_cc_wdrs_household, record_id, record_id_hh), by = c("record_id")) %>%
-  
-  #fill in missing record_id_hh with record_id if null
-  mutate(record_id_hh = case_when(
-    is.na(record_id_hh) ~ record_id,
-    TRUE ~ record_id_hh
   )) %>%
   
-  rename(redcap_record_id = record_id, record_id = record_id_hh) %>%
+  select(agency, arm, record_id, redcap_record_id, wdrs_id)
+
+## Add new record_id to doh_cc_current dataframe for use in referral date cleaning
+doh_cc_current_clustered <- left_join(doh_cc_current, select(doh_cc_wdrs_household, record_id, redcap_record_id), by = c("redcap_record_id")) %>%
+  
+  #rename
+  
+  #fill in missing record_id_hh with record_id if null
+  mutate(record_id = case_when(
+    is.na(record_id) ~ redcap_record_id,
+    TRUE ~ record_id
+  )) %>%
+
   select(arm, record_id, redcap_record_id, everything())
 
 
@@ -197,3 +202,4 @@ doh_cc_household <- doh_cc_current_clustered %>%
 
 #### STEP 3: Bind PHSKC-assigned and DOH-assigned case, contact and household data ####
 complete_cc_household <- bind_rows(kc_cc_household, doh_cc_household)
+complete_cc_wdrs <- bind_rows(kc_wdrs_long, doh_cc_wdrs_household)
