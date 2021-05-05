@@ -296,6 +296,6 @@ complete_referrals_by_referral_date_tableau <- pivot_longer(complete_referrals_b
 
 #### STEP 3: Export all data for Tableau dashboard, including CHW data ####
 data_tableau <- list(complete_referrals_by_ct_date_tableau, complete_referrals_by_referral_date_tableau, complete_referrals_by_chw)
-sheet_tableau <- list("complete_referrals_by_ct_dt", "complete_referrals_by_referral_dt", "complete_referrals_by_chw")
+sheet_tableau <- list("referrals_by_ct_dt", "referrals_by_referral_dt", "referrals_by_chw")
 filename_tableau <- file.path(tableau_export, "cc_metrics_tableau.xlsx")
 write.xlsx(data_tableau, file = filename_tableau, sheetName = sheet_tableau)
