@@ -528,5 +528,6 @@ complete_referrals_by_household <- complete_referral_form %>%
   ungroup() %>%
   
   mutate(
+    any_referral = case_when(ct_referral_count >= 1 | chw_referral_count >= 1 ~ 1L, TRUE ~ 0L),
     ct_any_referral = case_when(ct_referral_count >= 1 ~ 1L, TRUE ~ 0L),
     chw_any_referral = case_when(chw_referral_count >= 1 ~ 1L, TRUE ~ 0L))

@@ -6,7 +6,7 @@
 analytic_export <- "//Phshare01/cdi_share/Outbreaks & Investigations/Outbreaks 2020/2019-nCoV/Contact Tracing/Epi/Care Coordination/Analytic Datasets/"
 
 #### STEP 1: Export household-level dataset and long-form WDRS for analytic purposes ####
-data_ct_analytic <- list(complete_referrals_by_household, complete_cc_wdrs)
+data_ct_analytic <- list(final_data_by_household, complete_cc_wdrs)
 sheet_ct_analytic <- list("complete_referrals_by_household", "complete_wdrs_long")
 filename_ct_analytic <- file.path(analytic_export, "complete_referrals_analytic_dataset.xlsx")
 system.time(write.xlsx(data_ct_analytic, file = filename_ct_analytic, sheetName = sheet_ct_analytic))
