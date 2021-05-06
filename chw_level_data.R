@@ -35,7 +35,7 @@ complete_chw_analytic <- complete_referral_form_with_demo %>%
   
   #Subset to desired variables
   select(agency, arm, record_id, referral_date, referral_timedt, chw_firstcall, chw_firstcall_date, chw_closed, chw_closed_date, referral_to_chw_hours,
-         referral_to_chw_lte_24h, chw_open_to_closed_hours, chw:iqmotel, healthinsurance:senior, chw_assigned, chw_assigned_other,
+         referral_to_chw_lte_24h, chw_open_to_closed_hours, chw:test_referral, healthinsurance:senior, chw_assigned, chw_assigned_other,
          chw_status, chw_firstcall_date, chw_firstcall, chw_closed, chw_closed, chw_time_est, chw_chap:chw_other, dob_norm, race_eth_norm, language_norm) %>%
   
   #Create flags for any CT or CHW referral
