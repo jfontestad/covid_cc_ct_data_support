@@ -186,6 +186,7 @@ email <-
         "* COVID-19 Care Coordination metrics datasets", "\n",
         "* complete_referrals_analytic_dataset.xlsx", "\n",
         "* complete_referrals_chw_analytic_dataset.xlsx", "\n",
+        "* complete_har_analytic_dataset.xlsx", "\n",
         "QA result: ", qa_result, "\n",
         qa_checkpoint_message, "\n",
         chw_analytic_file_demo_message, "\n",
