@@ -71,48 +71,59 @@ if(exists("complete_referral_form_with_demo") &
   qa_4 <- FALSE
 }
 
+#### STEP 5: Clean and combine HAR referral data for PHSKC-assigned and DOH-assigned households, include demographic data ####
+if(qa_4 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/clean_referral_data_har_subset.R")}
 
-#### STEP 5: Combine cleaned case/contact/household and referral data ####
-if(qa_4 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/combine_ct_referral_data.R")}
-
-#QA: Check to make sure all data has been processed, and that demographic data is distinct at household level
-if(exists("final_data_by_household") &
-   final_data_by_household_row_count == 1) {
+#QA: Check to make sure all referral data has been processed, and that demographic data is distinct at household level
+if(exists("complete_har_form_with_demo") &
+   complete_har_form_qa_check == 0) {
   qa_5 <- TRUE
 } else {
   qa_5 <- FALSE
 }
 
 
-#### STEP 6: Create CHW-level datasets for tabulation and analysis ####
-if(qa_5 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/chw_level_data.R")}
+#### STEP 6: Combine cleaned case/contact/household and referral data ####
+if(qa_5 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/combine_ct_referral_data.R")}
 
-#QA: Check to make sure all data has been processed, and that analytic dataset is distinct at agency, arm, record_id, referral_timedt level 
-if(exists("complete_referrals_by_chw") &
-   exists("complete_chw_analytic") &
-   complete_analytic_distinct_row_percent == 100) {
+#QA: Check to make sure all data has been processed, and that demographic data is distinct at household level
+if(exists("final_data_by_household") &
+   final_data_by_household_row_count == 1) {
   qa_6 <- TRUE
 } else {
   qa_6 <- FALSE
 }
 
-#### STEP 7: Export analytic datasets ####
-if(qa_6 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/export_analytic.R")}
 
+#### STEP 7: Create CHW-level datasets for tabulation and analysis ####
+if(qa_6 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/chw_level_data.R")}
 
-#### STEP 8: Tabulate and export for Tableau ####
-if(qa_6 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/export_tableau.R")}
-
-#QA: Check to make tabulated data has been processed
-if(exists("complete_referrals_by_ct_date_tableau") &
-   exists("complete_referrals_by_referral_date_tableau")) {
+#QA: Check to make sure all data has been processed, and that analytic dataset is distinct at agency, arm, record_id, referral_timedt level 
+if(exists("complete_referrals_by_chw") &
+   exists("complete_chw_analytic") &
+   complete_analytic_distinct_row_percent == 100) {
   qa_7 <- TRUE
 } else {
   qa_7 <- FALSE
 }
 
+#### STEP 8: Export analytic datasets ####
+if(qa_7 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/export_analytic.R")}
 
-#### STEP 9: Prepare final QA message and send email ####
+
+#### STEP 9: Tabulate and export for Tableau ####
+if(qa_7 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/export_tableau.R")}
+
+#QA: Check to make tabulated data has been processed
+if(exists("complete_referrals_by_ct_date_tableau") &
+   exists("complete_referrals_by_referral_date_tableau")) {
+  qa_8 <- TRUE
+} else {
+  qa_8 <- FALSE
+}
+
+
+#### STEP 10: Prepare final QA message and send email ####
 
 # Set up email credentials (have to run this once to store credentials securely using keyring package, must be rerun each time password is updated)
 # create_smtp_creds_key(id = "outlook", user = "eli.kern@kingcounty.gov", provider = "outlook", overwrite = T)
@@ -122,7 +133,7 @@ date_time <- add_readable_time()
 date <- Sys.Date()
 
 #Check final QA check
-if(qa_7 == TRUE) {
+if(qa_8 == TRUE) {
   qa_final <- "PASS"
 } else {
   qa_final <- "FAIL"
