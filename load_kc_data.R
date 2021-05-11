@@ -66,7 +66,10 @@ kc_cc_current <- kc_cc_current_raw %>%
            redcap_event_name %in% c("cases_arm_1", "contacts_arm_1", "household_arm_1") ~ "1",
            redcap_event_name %in% c("demographics__base_arm_2", "followup_arm_2") ~ "2",
            redcap_event_name %in% c("demographics__base_arm_3", "followup_arm_3") ~ "3",
-           TRUE ~ NA_character_))
+           TRUE ~ NA_character_)) %>%
+  
+  #Temporary code for removing columns in current data but not yet in archive
+  select(-oximeter_mailed, -oximeter_mailed_by, -safeway_account)
 
 #QA arm variable
 count(kc_cc_current, arm, redcap_event_name)
@@ -123,4 +126,5 @@ kc_cc_archive <- kc_cc_archive_raw %>%
 
 #### STEP 4: Compare columns in current and archived Household Contact Tracing data, and bind
 kc_cc_archive_current_coldiff <- nrow(janitor::compare_df_cols(kc_cc_archive, kc_cc_current, return = "mismatch", bind_method = "rbind"))
+#janitor::compare_df_cols(kc_cc_archive, kc_cc_current, return = "mismatch", bind_method = "rbind") #run for debugging
 kc_cc_complete <- bind_rows(kc_cc_current, kc_cc_archive) %>% distinct()
