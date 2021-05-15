@@ -97,6 +97,12 @@ wdrs_final <- wdrs_final %>%
   #Drop helper variables
   select(-investigator_ct, -investigation_status_ct, -final_dispo) %>%
   
+  #Add record ID column for later use to process DOH cases
+  mutate(record_id = case_when(
+    !is.na(householdid) ~ householdid,
+    !is.na(locationid) ~ locationid,
+    TRUE ~ case_id)) %>%
+  
   #Take distinct
   distinct()
 
