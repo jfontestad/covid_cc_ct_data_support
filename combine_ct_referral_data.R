@@ -7,7 +7,7 @@
 
 final_data_by_household <- left_join(complete_cc_household, complete_referrals_by_household, by = c("agency", "arm", "record_id"))
 
-final_data_by_household <- left_join(final_data_by_household, complete_referral_based_demo, by = c("agency", "arm", "record_id"))
+final_data_by_household <- left_join(final_data_by_household, complete_demo, by = c("agency", "arm", "record_id"))
 
 ## Convert all NAs to 0s for households with no referrals
 final_data_by_household <- final_data_by_household %>%

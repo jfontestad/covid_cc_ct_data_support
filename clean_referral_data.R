@@ -20,7 +20,7 @@ kc_referral_form <- kc_cc_complete %>%
          chw_time_est, har_startdt,
          
          #CHW-collected demographics
-         chw_language, chw_language_other, chw_raceethnicity___1:chw_raceethnicity___29, other_asian, other_blackafrica, other_latinx, other_nhpi, other_nhpi_2, chw_dob) %>%
+         chw_language, chw_language_other, chw_raceethnicity___1:chw_raceethnicity___29, other_asian, other_blackafrica, other_latinx, other_nhpi, other_nhpi_2) %>%
   
   #Pull out dates from date-times (date-times are already in desired format)
   #Adaptation for HAR - set referral date equal to har_startdt if referral_timedt is null
@@ -189,7 +189,7 @@ doh_referral_form <- doh_cc_current_clustered %>%
     chw_time_est, har_startdt,
     
     #DOH-collected demographics
-    language_c, date_of_birth_dob, race_eth) %>%
+    language_c, race_eth) %>%
     
     #Pull out dates from date-times (date-times are already in desired format)
     #Adaptation for HAR - set referral date equal to har_startdt if referral_timedt is null
@@ -341,25 +341,19 @@ rm(doh_cc_test_ref)
 
 #### STEP 5: Normalize referral form demographics at household level - PHSKC assigned cases ####
 
-#For DOB - take minimum (oldest household member) & for language - take maximum (selects non-English language over English)
-kc_referral_based_demo <- select(kc_referral_form, agency, arm, record_id, chw_language, chw_raceethnicity___1:chw_raceethnicity___29, chw_dob) %>%
+#For language - take maximum (selects non-English language over English)
+kc_referral_based_demo <- select(kc_referral_form, agency, arm, record_id, chw_language, chw_raceethnicity___1:chw_raceethnicity___29) %>%
   
   #Turn all zeroes to NA
   mutate_at(vars(chw_raceethnicity___1:chw_raceethnicity___29), ~na_if(., "0")) %>%
   
-  #Set invalidly formatted dates of birth to missing
-  mutate(chw_dob = case_when(str_detect(chw_dob, "-") == T ~ chw_dob, TRUE ~ NA_character_)) %>%
-  
   #Fill missing values with non-missing values
   group_by(arm, record_id) %>%
-  fill(chw_language:chw_dob, .direction = "downup") %>%
+  fill(chw_language:chw_raceethnicity___29, .direction = "downup") %>%
   
   mutate(
-    #Take minimum date of birth when multiple values exist for an arm-record ID
-    #Note ifelse prevents Inf values as compared to case_when
-    chw_dob = ifelse(sum(!is.na(chw_dob)) == 0, NA_character_, as.character(min(as.Date(chw_dob, origin = origin), na.rm = T))),
-    
     #Take maximum language when multiple values exist for an arm-record ID
+    #Note ifelse prevents Inf values as compared to case_when
     chw_language = ifelse(sum(!is.na(chw_language)) == 0, NA_character_, as.character(max(as.integer(chw_language), na.rm = T)))
   ) %>%
   ungroup() %>%
@@ -410,10 +404,7 @@ kc_referral_based_demo <- select(kc_referral_form, agency, arm, record_id, chw_l
       race_nhpi == 1 ~ "Native Hawaiian or Pacific Islander",
       race_white == 1 ~ "White",
       TRUE ~ NA_character_)
-  ) %>%
-  
-  #Normalize date of birth with DOH-assigned data
-  mutate(dob_norm = chw_dob)
+  )
     
 # QA to make sure no more than one row per arm-record ID
 kc_referral_based_demo_distinct_row_percent <- filter(kc_referral_based_demo %>% group_by(arm, record_id) %>% mutate(row_count = n()) %>% ungroup() %>% count(row_count) %>%
@@ -423,7 +414,7 @@ kc_referral_based_demo_distinct_row_percent <- filter(kc_referral_based_demo %>%
 #### STEP 6: Normalize referral form demographics at household level - DOH assigned cases ####
 
 #For DOB - take minimum (oldest household member) & for language - take maximum (selects non-English language over English)
-doh_referral_based_demo <- select(doh_referral_form, agency, arm, record_id, language_c, race_eth, date_of_birth_dob) %>%
+doh_referral_based_demo <- select(doh_referral_form, agency, arm, record_id, language_c, race_eth) %>%
             
   #Normalize language PHSKC-assigned data
   mutate(
@@ -439,23 +430,17 @@ doh_referral_based_demo <- select(doh_referral_form, agency, arm, record_id, lan
       TRUE ~ NA_character_),
     
     #Normalize race/ethnicity PHSKC-assigned data
-    race_eth_norm = case_when(race_eth == "Unknown" ~ NA_character_, TRUE ~ race_eth),
-    
-    #Normalize dob with PHSKC-assigned data
-    dob_norm = date_of_birth_dob) %>%
+    race_eth_norm = case_when(race_eth == "Unknown" ~ NA_character_, TRUE ~ race_eth)) %>%
   
-  select(-language_c, -race_eth, -date_of_birth_dob) %>%
+  select(-language_c, -race_eth) %>%
   
   #Fill missing values with non-missing values
   group_by(arm, record_id) %>%
-  fill(language_norm:dob_norm, .direction = "downup") %>%
+  fill(language_norm:race_eth_norm, .direction = "downup") %>%
   
   mutate(
-    #Take minimum date of birth when multiple values exist for an arm-record ID
-    #Note ifelse prevents Inf values as compared to case_when
-    dob_norm = ifelse(sum(!is.na(dob_norm)) == 0, NA_character_, as.character(min(as.Date(dob_norm, origin = origin), na.rm = T))),
-    
     #Take maximum language when multiple values exist for an arm-record ID
+    #Note ifelse prevents Inf values as compared to case_when
     language_norm = ifelse(sum(!is.na(language_norm)) == 0, NA_character_, as.character(max(as.integer(language_norm), na.rm = T))),
     
     #Set race to multiple race if more than race reported at household
@@ -488,23 +473,162 @@ doh_referral_based_demo_distinct_row_percent <- filter(doh_referral_based_demo %
 
 #### STEP 7: Bind PHSKC-assigned and DOH-assigned demographics ####
 complete_referral_based_demo <- bind_rows(kc_referral_based_demo, doh_referral_based_demo) %>%
-  select(agency, arm, record_id, dob_norm, race_eth_norm, language_norm, everything())
+  select(agency, arm, record_id, race_eth_norm, language_norm, everything())
 rm(kc_referral_based_demo, doh_referral_based_demo)
 
 
-#### STEP 8: Bind PHSKC-assigned and DOH-assigned referrals ####
+#### STEP 8: Prepare household-level demographics using A&I data ####
+
+## Create a household-level demographic dataset using A&I demographics
+#Filter out non-household member WDRS IDs before join
+wdrs_demo_household <- left_join(
+  filter(complete_cc_wdrs, !(wdrs_id_type %in% c("wdrs_hh_exp", "wdrs_ic"))) %>% select(agency, arm, record_id, wdrs_id),
+  select(wdrs_final, case_id, language, lang_specify, race_eth, race_eth_sub_grp, reporting_zipcode, census_tractid),
+  by = c("wdrs_id" = "case_id")
+)
+
+## Normalize demographic data with CT/CC demographic data to prepare for eventual merge
+wdrs_demo_household <- wdrs_demo_household %>%
+  
+  mutate(
+  #Race/ethnicity
+  race_eth_norm = case_when(
+    race_eth == "American Indian or Alaskan Native, not hispanic" &
+      (is.na(race_eth_sub_grp) | race_eth_sub_grp == "Other or multi-racial") ~ "American Indian or Alaska Native",
+    race_eth == "Asian, not hispanic" &
+      (race_eth_sub_grp %in% c("Cambodian", "Chinese", "Filipino", "Indian", "Japanese", "Korean", "Thai", "Vietnamese") |
+         race_eth_sub_grp == "Other or multi-racial" | is.na(race_eth_sub_grp)) ~ "Asian",
+    race_eth == "Black, not hispanic" &
+      (race_eth_sub_grp %in% c("African American", "Eritrean", "Ethiopian", "Kenyan", "Somali") |
+         race_eth_sub_grp == "Other or multi-racial" | is.na(race_eth_sub_grp)) ~ "Black or African_American",
+    race_eth == "Hispanic or Latino, any race" &
+      (race_eth_sub_grp %in% c("Cuban", "Mexican") |
+         race_eth_sub_grp == "Other or multi-racial" | is.na(race_eth_sub_grp)) ~ "Hispanic/Latino",
+    race_eth == "Native Hawaiian or other Pacific Islander, not hispanic" &
+      (race_eth_sub_grp %in% c("Marshallese", "Native Hawaiian", "Samoan") |
+         race_eth_sub_grp == "Other or multi-racial" | is.na(race_eth_sub_grp)) ~ "Native Hawaiian or Pacific Islander",
+    race_eth == "White, not hispanic" &
+      (is.na(race_eth_sub_grp) | race_eth_sub_grp == "Other or multi-racial") ~ "White",
+    
+    #Multiple race
+    race_eth %in% c("American Indian or Alaskan Native, not hispanic", "Asian, not hispanic", "Black, not hispanic",
+                    "Hispanic or Latino, any race", "Native Hawaiian or other Pacific Islander, not hispanic",
+                    "White, not hispanic") ~ "Multiple race",
+    
+    #Missing race but sub group filled in
+    race_eth_sub_grp %in% c("Cambodian", "Chinese", "Filipino", "Indian", "Japanese", "Korean", "Thai", "Vietnamese") ~ "Asian",
+    race_eth_sub_grp %in% c("African American", "Eritrean", "Ethiopian", "Kenyan", "Somali") ~ "Black or African_American",
+    race_eth_sub_grp %in% c("Cuban", "Mexican") ~ "Hispanic/Latino",
+    race_eth_sub_grp %in% c("Marshallese", "Native Hawaiian", "Samoan") ~ "Native Hawaiian or Pacific Islander",
+    
+    #Everything else set to missing
+    TRUE ~ NA_character_),
+  
+  #Language
+  language_norm = case_when(
+    language == "English" ~ "1",
+    str_detect(lang_specify, "Chinese") ~ "2",
+    lang_specify == "Korean" ~ "3",
+    lang_specify == "Russian" ~ "4",
+    lang_specify == "Somali" ~ "5",
+    lang_specify == "Spanish" ~ "6",
+    lang_specify == "Vietnamese" ~ "7",
+    !is.na(lang_specify) & lang_specify != "Unknown" & lang_specify != "Undetermined" ~ "8",
+    TRUE ~ NA_character_)) %>%
+  
+  #Drop vars not needed
+  select(-race_eth, -race_eth_sub_grp, -language, -lang_specify, -wdrs_id)
+
+## Cluster to household level
+wdrs_demo_household <- wdrs_demo_household %>%
+  group_by(agency, arm, record_id) %>%
+  
+  mutate(
+    #Take maximum language when multiple values exist for an arm-record ID
+    #Note ifelse prevents Inf values as compared to case_when
+    language_norm = ifelse(sum(!is.na(language_norm)) == 0, NA_character_, as.character(max(as.integer(language_norm), na.rm = T))),
+    
+    #Set race to multiple race if more than race reported at household
+    race_eth_count = n_distinct(race_eth_norm),
+    race_eth_norm = case_when(
+      race_eth_count > 1 ~ "Multiple race",
+      TRUE ~ race_eth_norm
+    ),
+    
+    #Take min ZIP code and census tract
+    reporting_zipcode = ifelse(sum(!is.na(reporting_zipcode)) == 0, NA_character_, min(reporting_zipcode, na.rm = T)),
+    census_tractid = ifelse(sum(!is.na(census_tractid)) == 0, NA_character_, min(census_tractid, na.rm = T))) %>%
+  select(-race_eth_count) %>%
+  ungroup() %>%
+  distinct() %>%
+  
+  #Convert language from numeric to character names
+  mutate(
+    language_norm = case_when(
+      language_norm == "1" ~ "English",
+      language_norm == "2" ~ "Chinese",
+      language_norm == "3" ~ "Korean",
+      language_norm == "4" ~ "Russian",
+      language_norm == "5" ~ "Somali",
+      language_norm == "6" ~ "Spanish",
+      language_norm == "7" ~ "Vietnamese",
+      language_norm == "8" ~ "Another language",
+      TRUE ~ NA_character_))
+
+
+#### STEP 9: Bring in census tract-level SERI scores ####
+col_types <- cols(.default = col_character())
+seri_census <- read_csv("//phshare01/CDI_SHARE/Analytics and Informatics Team/COVID Daily Reports/SAS Code/Census Tract Analyses/data/seri_census.csv", col_types = col_types)
+rm(col_types)
+
+#Join to wdrs-based, household-level demographic data
+wdrs_demo_household <- left_join(wdrs_demo_household, select(seri_census, census_tractid, composite_score), by = c("census_tractid" = "census_tractid")) %>%
+  rename(seri_composite_score = composite_score,
+         race_eth_norm_wdrs = race_eth_norm,
+         language_norm_wdrs = language_norm)
+
+rm(seri_census)
+
+
+#### STEP 10: Combine referral-based demographics with A&I demographics ####
+complete_demo <- full_join(complete_referral_based_demo, wdrs_demo_household, by = c("agency", "arm", "record_id")) %>%
+  
+  #Drop CHW-collected demo vars (too many fields for dataset utility)
+  select(-chw_language:-race_eth_sum) %>%
+  
+  #Replace missing referral-based demograpgic fields with data from A&I
+  mutate(
+    race_eth_norm = case_when(
+      is.na(race_eth_norm) & !is.na(race_eth_norm_wdrs) ~ race_eth_norm_wdrs,
+      TRUE ~ race_eth_norm),
+    
+    language_norm = case_when(
+      is.na(language_norm) & !is.na(language_norm_wdrs) ~ language_norm_wdrs,
+      TRUE ~ language_norm)) %>%
+  
+  #Drop helper vars
+  select(-race_eth_norm_wdrs, -language_norm_wdrs)
+
+rm(complete_referral_based_demo, wdrs_demo_household)
+
+
+#### STEP 11: Add in household size var to demographic dataset ####
+complete_demo <- left_join(complete_demo, select(complete_cc_household, agency, arm, record_id, hh_size), by = c("agency", "arm", "record_id"))
+
+
+#### STEP 12: Bind PHSKC-assigned and DOH-assigned referrals ####
 complete_referral_form <- bind_rows(kc_referral_form, doh_referral_form) %>%
-  select(-chw_dob, -chw_language:-chw_language_other, -chw_raceethnicity___1:-other_nhpi_2, -language_c:-race_eth, -redcap_event_name) %>%
+  select(-chw_language:-chw_language_other, -chw_raceethnicity___1:-other_nhpi_2, -language_c:-race_eth, -redcap_event_name) %>%
   select(agency, arm, record_id, referral_date, referral_timedt, call_attempt, everything())
 
 rm(kc_referral_form, doh_referral_form)
 
 
-#### STEP 9: Join to household-level demographics ####
-complete_referral_form_with_demo <- left_join(complete_referral_form, complete_referral_based_demo, by = c("agency", "arm", "record_id"))
+#### STEP 13: Join to household-level demographics ####
+complete_referral_form_with_demo <- left_join(complete_referral_form, complete_demo, by = c("agency", "arm", "record_id"))
 
 
-#### STEP 10: Collapse referral data to record ID level ####
+#### STEP 14: Collapse referral data to record ID level ####
 
 #Take max of all referral type variables by arm and record ID
 complete_referrals_by_household <- complete_referral_form %>%
