@@ -147,7 +147,7 @@ complete_referrals_by_ct_date_tableau <- pivot_longer(complete_referrals_by_ct_d
 complete_referral_form_with_demo_for_tabulate <- complete_referral_form_with_demo %>%
   
   #Subset to desired variables
-  select(agency, arm, record_id, referral_date, chw:test_referral, healthinsurance:senior, chw_chap:chw_other, dob_norm, race_eth_norm, language_norm) %>%
+  select(agency, arm, record_id, referral_date, chw:test_referral, healthinsurance:senior, chw_chap:chw_other, race_eth_norm:hh_size) %>%
   
   #Create flags for any CT or CHW referral
   rowwise() %>%
