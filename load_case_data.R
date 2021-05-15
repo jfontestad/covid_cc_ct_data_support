@@ -15,10 +15,17 @@ crf_wdrs_public[] <- lapply(crf_wdrs_public, function(x) {attributes(x) <- NULL;
 wdrs_temp <- base_conf_prob_cases %>%
   select(CASE_ID, language, lang_specify, race_eth, race_eth_sub_grp, REPORTING_ZIPCODE, census_tractid, householdid, locationid, INVESTIGATION_START_DATE, INVESTIGATION_STATUS,
          investigator) %>%
+  
+  #rename ALL CAPS vars
   rename(case_id = CASE_ID,
          reporting_zipcode = REPORTING_ZIPCODE,
          investigation_start_date = INVESTIGATION_START_DATE,
-         investigation_status = INVESTIGATION_STATUS)
+         investigation_status = INVESTIGATION_STATUS) %>%
+  
+  #Set geo cluster IDs to character format
+  mutate(
+    householdid = as.character(householdid),
+    locationid = as.character(locationid))
 
 #Clean ZIP code and dates
 wdrs_temp <- wdrs_temp %>%
