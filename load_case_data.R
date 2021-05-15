@@ -38,7 +38,12 @@ wdrs_temp <- wdrs_temp %>%
            ~ reporting_zipcode,
            TRUE ~ NA_character_),
          
-         investigation_start_date = as.Date(as.POSIXct(investigation_start_date, origin = "1970-01-01 00:00:00")))
+         investigation_start_date = as.Date(as.POSIXct(investigation_start_date, origin = "1970-01-01 00:00:00")),
+         
+         #set impossible dates to missing
+         investigation_start_date = case_when(
+           investigation_start_date >= "2020-02-01" ~ investigation_start_date,
+           TRUE ~ lubridate::NA_Date_))
 
 #Set blanks to missing
 wdrs_temp <- wdrs_temp %>%
