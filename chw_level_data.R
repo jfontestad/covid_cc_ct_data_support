@@ -8,7 +8,7 @@ complete_referrals_by_chw <- complete_referral_form_with_demo %>%
   #Select variables to keep
   select(agency, arm, record_id, referral_date, referral_timedt, call_attempt, chw_firstcall, chw_firstcall_date, chw_closed, chw_closed_date, referral_to_chw_hours,
          referral_to_chw_lte_24h, chw_open_to_closed_hours, chw:test_referral, healthinsurance:senior, chw_assigned, chw_assigned_other,
-         chw_status, chw_firstcall_date, chw_firstcall, chw_closed, chw_closed, chw_time_est, chw_chap:chw_other, dob_norm, race_eth_norm, language_norm) %>%
+         chw_status, chw_firstcall_date, chw_firstcall, chw_closed, chw_closed, chw_time_est, chw_chap:chw_other, race_eth_norm:hh_size) %>%
   
   #Create summary variables for QA
   rowwise() %>%
@@ -36,7 +36,7 @@ complete_chw_analytic <- complete_referral_form_with_demo %>%
   #Subset to desired variables
   select(agency, arm, record_id, referral_date, referral_timedt, chw_firstcall, chw_firstcall_date, chw_closed, chw_closed_date, referral_to_chw_hours,
          referral_to_chw_lte_24h, chw_open_to_closed_hours, chw:test_referral, healthinsurance:senior, chw_assigned, chw_assigned_other,
-         chw_status, chw_firstcall_date, chw_firstcall, chw_closed, chw_closed, chw_time_est, chw_chap:chw_other, dob_norm, race_eth_norm, language_norm) %>%
+         chw_status, chw_firstcall_date, chw_firstcall, chw_closed, chw_closed, chw_time_est, chw_chap:chw_other, race_eth_norm:hh_size) %>%
   
   #Create flags for any CT or CHW referral
   rowwise() %>%
@@ -54,7 +54,6 @@ complete_chw_analytic <- complete_referral_form_with_demo %>%
   
   #Add flags for missing demographics
   mutate(race_eth_norm_missing = case_when(is.na(race_eth_norm) ~ 1L, TRUE ~ 0L),
-         dob_norm_missing = case_when(is.na(dob_norm) ~ 1L, TRUE ~ 0L),
          language_norm_missing = case_when(is.na(language_norm) ~ 1L, TRUE ~ 0L)) %>%
   
   #Take distinct rows
@@ -70,8 +69,6 @@ doh_raceethnicity_missing_count <- filter(count(filter(demo_qa, agency == "doh")
                                           race_eth_norm_missing == 1)$n
 doh_raceethnicity_missing_per <- filter(count(filter(demo_qa, agency == "doh"), race_eth_norm_missing) %>% mutate(per = round2(n/sum(n, na.rm = T)*100, 1)),
                                         race_eth_norm_missing == 1)$per
-doh_dob_missing_count <- filter(count(filter(demo_qa, agency == "doh"), dob_norm_missing) %>% mutate(per = round2(n/sum(n, na.rm = T)*100, 1)), dob_norm_missing == 1)$n
-doh_dob_missing_per <- filter(count(filter(demo_qa, agency == "doh"), dob_norm_missing) %>% mutate(per = round2(n/sum(n, na.rm = T)*100, 1)), dob_norm_missing == 1)$per
 doh_language_missing_count <- filter(count(filter(demo_qa, agency == "doh"), language_norm_missing) %>% mutate(per = round2(n/sum(n, na.rm = T)*100, 1)), language_norm_missing == 1)$n
 doh_language_missing_per <- filter(count(filter(demo_qa, agency == "doh"), language_norm_missing) %>% mutate(per = round2(n/sum(n, na.rm = T)*100, 1)), language_norm_missing == 1)$per
 
@@ -79,8 +76,6 @@ kc_raceethnicity_missing_count <- filter(count(filter(demo_qa, agency == "phskc"
                                           race_eth_norm_missing == 1)$n
 kc_raceethnicity_missing_per <- filter(count(filter(demo_qa, agency == "phskc"), race_eth_norm_missing) %>% mutate(per = round2(n/sum(n, na.rm = T)*100, 1)),
                                         race_eth_norm_missing == 1)$per
-kc_dob_missing_count <- filter(count(filter(demo_qa, agency == "phskc"), dob_norm_missing) %>% mutate(per = round2(n/sum(n, na.rm = T)*100, 1)), dob_norm_missing == 1)$n
-kc_dob_missing_per <- filter(count(filter(demo_qa, agency == "phskc"), dob_norm_missing) %>% mutate(per = round2(n/sum(n, na.rm = T)*100, 1)), dob_norm_missing == 1)$per
 kc_language_missing_count <- filter(count(filter(demo_qa, agency == "phskc"), language_norm_missing) %>% mutate(per = round2(n/sum(n, na.rm = T)*100, 1)), language_norm_missing == 1)$n
 kc_language_missing_per <- filter(count(filter(demo_qa, agency == "phskc"), language_norm_missing) %>% mutate(per = round2(n/sum(n, na.rm = T)*100, 1)), language_norm_missing == 1)$per
 
