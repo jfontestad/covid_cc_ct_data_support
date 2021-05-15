@@ -44,86 +44,99 @@ if(exists("doh_cc_current")) {
 }
 
 
-#### STEP 3: Clean and combine case, contact and household COVID-19-related data for PHSKC-assigned and DOH-assigned households ####
-if(qa_2 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/clean_ct_data.R")}
+#### STEP 3: Load COVID-19 case data exported daily by A&I, and load a weekly dataset maintained by CT ####
+if(qa_1 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/load_case_data.R")}
 
-#QA: Check to make sure all data has been processed, and that household data is distinct at household level
-if(exists("complete_cc_household") &
-   exists("complete_cc_wdrs") &
-   kc_cc_household_row_count == 1 &
-   doh_cc_household_row_count == 1) {
+#QA: Check to make sure DOH data loaded
+if(exists("wdrs_final") &
+   wdrs_final_rows_per_case == 1) {
   qa_3 <- TRUE
 } else {
   qa_3 <- FALSE
 }
 
 
-#### STEP 4: Clean and combine referral data for PHSKC-assigned and DOH-assigned households, include demographic data ####
-if(qa_3 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/clean_referral_data.R")}
+#### STEP 4: Clean and combine case, contact and household COVID-19-related data for PHSKC-assigned and DOH-assigned households ####
+if(qa_3 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/clean_ct_data.R")}
+
+#QA: Check to make sure all data has been processed, and that household data is distinct at household level
+if(exists("complete_cc_household") &
+   exists("complete_cc_wdrs") &
+   kc_cc_household_row_count == 1 &
+   doh_cc_household_row_count == 1) {
+  qa_4 <- TRUE
+} else {
+  qa_4 <- FALSE
+}
+
+
+#### STEP 5: Clean and combine referral data for PHSKC-assigned and DOH-assigned households, include demographic data ####
+if(qa_4 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/clean_referral_data.R")}
 
 #QA: Check to make sure all referral data has been processed, and that demographic data is distinct at household level
 if(exists("complete_referral_form_with_demo") &
    exists("complete_referrals_by_household") &
    kc_referral_based_demo_distinct_row_percent == 100 &
    doh_referral_based_demo_distinct_row_percent == 100) {
-  qa_4 <- TRUE
-} else {
-  qa_4 <- FALSE
-}
-
-#### STEP 5: Clean and combine HAR referral data for PHSKC-assigned and DOH-assigned households, include demographic data ####
-if(qa_4 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/clean_referral_data_har_subset.R")}
-
-#QA: Check to make sure all referral data has been processed, and that demographic data is distinct at household level
-if(exists("complete_har_form_with_demo") &
-   complete_har_form_qa_check == 0) {
   qa_5 <- TRUE
 } else {
   qa_5 <- FALSE
 }
 
+#### STEP 6: Clean and combine HAR referral data for PHSKC-assigned and DOH-assigned households, include demographic data ####
+if(qa_5 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/clean_referral_data_har_subset.R")}
 
-#### STEP 6: Combine cleaned case/contact/household and referral data ####
-if(qa_5 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/combine_ct_referral_data.R")}
-
-#QA: Check to make sure all data has been processed, and that demographic data is distinct at household level
-if(exists("final_data_by_household") &
-   final_data_by_household_row_count == 1) {
+#QA: Check to make sure all referral data has been processed, and that demographic data is distinct at household level
+if(exists("complete_har_form_with_demo") &
+   complete_har_form_qa_check == 0) {
   qa_6 <- TRUE
 } else {
   qa_6 <- FALSE
 }
 
 
-#### STEP 7: Create CHW-level datasets for tabulation and analysis ####
-if(qa_6 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/chw_level_data.R")}
+#### STEP 7: Combine cleaned case/contact/household and referral data ####
+if(qa_6 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/combine_ct_referral_data.R")}
 
-#QA: Check to make sure all data has been processed, and that analytic dataset is distinct at agency, arm, record_id, referral_timedt level 
-if(exists("complete_referrals_by_chw") &
-   exists("complete_chw_analytic") &
-   complete_analytic_distinct_row_percent == 100) {
+#QA: Check to make sure all data has been processed, and that demographic data is distinct at household level
+if(exists("final_data_by_household") &
+   final_data_by_household_row_count == 1) {
   qa_7 <- TRUE
 } else {
   qa_7 <- FALSE
 }
 
-#### STEP 8: Export analytic datasets ####
-if(qa_7 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/export_analytic.R")}
 
+#### STEP 8: Create CHW-level datasets for tabulation and analysis ####
+if(qa_7 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/chw_level_data.R")}
 
-#### STEP 9: Tabulate and export for Tableau ####
-if(qa_7 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/export_tableau.R")}
-
-#QA: Check to make tabulated data has been processed
-if(exists("complete_referrals_by_ct_date_tableau") &
-   exists("complete_referrals_by_referral_date_tableau")) {
+#QA: Check to make sure all data has been processed, and that analytic dataset is distinct at agency, arm, record_id, referral_timedt level 
+if(exists("complete_referrals_by_chw") &
+   exists("complete_chw_analytic") &
+   complete_analytic_distinct_row_percent == 100) {
   qa_8 <- TRUE
 } else {
   qa_8 <- FALSE
 }
 
 
-#### STEP 10: Prepare final QA message and send email ####
+#### STEP 9: Export analytic datasets ####
+if(qa_8 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/export_analytic.R")}
+
+
+#### STEP 10: Tabulate and export for Tableau ####
+if(qa_8 == TRUE) {devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/covid_cc_ct_data_support/main/export_tableau.R")}
+
+#QA: Check to make tabulated data has been processed
+if(exists("complete_referrals_by_ct_date_tableau") &
+   exists("complete_referrals_by_referral_date_tableau")) {
+  qa_9 <- TRUE
+} else {
+  qa_9 <- FALSE
+}
+
+
+#### STEP 11: Prepare final QA message and send email ####
 
 # Set up email credentials (have to run this once to store credentials securely using keyring package, must be rerun each time password is updated)
 # create_smtp_creds_key(id = "outlook", user = "eli.kern@kingcounty.gov", provider = "outlook", overwrite = T)
@@ -133,7 +146,7 @@ date_time <- add_readable_time()
 date <- Sys.Date()
 
 #Check final QA check
-if(qa_8 == TRUE) {
+if(qa_9 == TRUE) {
   qa_final <- "PASS"
 } else {
   qa_final <- "FAIL"
@@ -151,28 +164,20 @@ if (qa_final == "PASS") {
   kc_analytic_file_message_language <- paste0("* PHSKC-assigned CHW referrals missing language: ",
                                               kc_language_missing_count, " referrals (",
                                               kc_language_missing_per, "%)")
-  kc_analytic_file_message_dob <- paste0("* PHSKC-assigned CHW referrals missing date of birth: ",
-                                         kc_dob_missing_count, " referrals (",
-                                         kc_dob_missing_per, "%)")
   doh_analytic_file_message_race <- paste0("* DOH-assigned CHW referrals missing race/ethnicity: ",
                                           doh_raceethnicity_missing_count, " referrals (",
                                           doh_raceethnicity_missing_per, "%)")
   doh_analytic_file_message_language <- paste0("* DOH-assigned CHW referrals missing language: ",
                                               doh_language_missing_count, " referrals (",
                                               doh_language_missing_per, "%)")
-  doh_analytic_file_message_dob <- paste0("* DOH-assigned CHW referrals missing date of birth: ",
-                                         doh_dob_missing_count, " referrals (",
-                                         doh_dob_missing_per, "%)")
 } else {
   qa_result <- "**FAIL**"
   qa_checkpoint_message <- NULL
   chw_analytic_file_demo_message <- NULL
   kc_analytic_file_message_race <- NULL
   kc_analytic_file_message_language <- NULL
-  kc_analytic_file_message_dob <- NULL
   doh_analytic_file_message_race <- NULL
   doh_analytic_file_message_language <- NULL
-  doh_analytic_file_message_dob <- NULL
 }
 
 #Set subject of email
@@ -192,10 +197,8 @@ email <-
         chw_analytic_file_demo_message, "\n",
         kc_analytic_file_message_race, "\n",
         kc_analytic_file_message_language, "\n",
-        kc_analytic_file_message_dob, "\n",
         doh_analytic_file_message_race, "\n",
-        doh_analytic_file_message_language, "\n",
-        doh_analytic_file_message_dob, "\n"
+        doh_analytic_file_message_language, "\n"
       )),
     footer = md(
       c("Email sent on ", date_time, ".")
