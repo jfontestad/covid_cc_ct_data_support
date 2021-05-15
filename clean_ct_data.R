@@ -137,16 +137,9 @@ doh_cc_wdrs <- select(doh_cc_current, redcap_record_id, wdrs_event_id, first_nam
   select(agency, arm, redcap_record_id, wdrs_id) %>%
   distinct()
 
-## Import household clustering dataset
-# Eventually replace this with path or SQL connection to permanent file
-hh_cluster_file_path <- "//Phshare01/cdi_share/Outbreaks & Investigations/Outbreaks 2020/2019-nCoV/Contact Tracing/Epi/Care Coordination/Analytic Datasets/hh_cluster_vars.csv"
-col_types <- cols(.default = col_character())
-case_household_cluster <- read_csv(hh_cluster_file_path, col_types = col_types) %>%
-  select(CASE_ID, locationid, householdid)
-rm(col_types)
 
 ## Join DOH cases to household cluster dataset to group cases into households
-doh_cc_wdrs_household <- left_join(doh_cc_wdrs, case_household_cluster, by = c("wdrs_id" = "CASE_ID")) %>%
+doh_cc_wdrs_household <- left_join(doh_cc_wdrs, wdrs_final, by = c("wdrs_id" = "case_id")) %>%
   
   #Assign household ID based on following logic: 1) cluster based on hh address, 2) cluster based on hh lat/long, 3) cluster based on REDCap record ID (i.e. phone #)
   mutate(record_id = case_when(
@@ -158,18 +151,58 @@ doh_cc_wdrs_household <- left_join(doh_cc_wdrs, case_household_cluster, by = c("
   
   select(agency, arm, record_id, redcap_record_id, wdrs_id)
 
+
 ## Add new record_id to doh_cc_current dataframe for use in referral date cleaning
 doh_cc_current_clustered <- left_join(doh_cc_current, select(doh_cc_wdrs_household, record_id, redcap_record_id), by = c("redcap_record_id")) %>%
-  
-  #rename
   
   #fill in missing record_id_hh with record_id if null
   mutate(record_id = case_when(
     is.na(record_id) ~ redcap_record_id,
     TRUE ~ record_id
   )) %>%
-
+  
   select(arm, record_id, redcap_record_id, everything())
+
+
+## Expand DOH Care Coordination dataset (REDCap) to include cases not requiring care coordination (using A&I dataset)
+
+#Pull out DOH households with needs from REDCap data
+doh_with_needs <- doh_cc_wdrs_household %>%
+  mutate(
+    needs_cc = 1,
+    record_id = case_when(
+      record_id == redcap_record_id ~ wdrs_id,
+      TRUE ~ record_id)) %>%
+  select(record_id, needs_cc)
+  
+#Pull out all DOH cases/households from A&I data
+doh_all <- filter(wdrs_final, investigator == "DOH") %>%
+  select(record_id, investigation_start_date, case_id) %>%
+  mutate(doh_all = 1)
+
+#Join and subset to DOH-assigned households with no CC needs
+doh_expand <- full_join(doh_with_needs, doh_all, by = "record_id") %>%
+  filter(is.na(needs_cc) & doh_all == 1) %>%
+  mutate(arm = "doh-assigned") %>%
+  select(arm, record_id, investigation_start_date, case_id)
+rm(doh_with_needs, doh_all)
+
+#Prep for expanding household dataset
+doh_expand_household <- select(doh_expand, arm, record_id, investigation_start_date)
+
+#Prep for expanding WDRS datasaet
+doh_expand_wdrs <- select(doh_expand, arm, record_id, case_id) %>%
+  mutate(agency = "doh") %>%
+  rename(wdrs_id = case_id) %>%
+  select(agency, arm, record_id, wdrs_id)
+
+#Expand REDCap household dataset
+doh_cc_current_clustered <- bind_rows(doh_cc_current_clustered, doh_expand_household)
+
+#Expand REDCap WDRS dataset
+doh_cc_wdrs_household <- bind_rows(doh_cc_wdrs_household, doh_expand_wdrs)
+
+rm(doh_expand, doh_expand_household, doh_expand_wdrs)
 
 
 ## Normalize DOH-assigned household data to match PHSKC-assigned data
@@ -183,6 +216,7 @@ doh_cc_household <- doh_cc_current_clustered %>%
       !is.na(created_on) ~ as.Date(created_on, origin = origin),
       !is.na(today_novariableneeded) ~ as.Date(today_novariableneeded, origin = origin),
       !is.na(call_attempt) ~ as.Date(call_attempt, origin = origin),
+      !is.na(investigation_start_date) ~ investigation_start_date,
       TRUE ~ lubridate::NA_Date_),
     
     #household size
