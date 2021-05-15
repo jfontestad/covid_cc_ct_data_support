@@ -175,8 +175,9 @@ doh_with_needs <- doh_cc_wdrs_household %>%
       TRUE ~ record_id)) %>%
   select(record_id, needs_cc)
   
-#Pull out all DOH cases/households from A&I data
-doh_all <- filter(wdrs_final, investigator == "DOH") %>%
+#Pull out all DOH cases/households from A&I data with Complete/In progress investigation status
+doh_all <- wdrs_final %>%
+  filter(investigator == "DOH" & investigation_status %in% c("Complete", "Complete - not reportable to DOH", "In progress")) %>%
   select(record_id, investigation_start_date, case_id) %>%
   mutate(doh_all = 1)
 
