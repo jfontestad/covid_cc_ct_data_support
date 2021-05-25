@@ -122,6 +122,14 @@ kc_cc_archive <- kc_cc_archive_raw %>%
   
   #drop extra vars not in current data
   select(-grocery_order_form_timestamp, -redcap_survey_identifier)
+  
+  #add extra vars that have not yet made it into
+  if("har_incoming_calls_followup" %in% colnames(kc_cc_archive) == FALSE) {
+    kc_cc_archive <- kc_cc_archive %>%
+      mutate(
+        har_incoming_calls_followup = NA_character_
+      )
+  }
 
 
 #### STEP 4: Compare columns in current and archived Household Contact Tracing data, and bind
