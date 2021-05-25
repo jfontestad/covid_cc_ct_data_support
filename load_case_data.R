@@ -14,13 +14,14 @@ crf_wdrs_public[] <- lapply(crf_wdrs_public, function(x) {attributes(x) <- NULL;
 #### STEP 2: Pull out desired variables from A&I dataset ####
 wdrs_temp <- base_conf_prob_cases %>%
   select(CASE_ID, language, lang_specify, race_eth, race_eth_sub_grp, REPORTING_ZIPCODE, census_tractid, householdid, locationid, INVESTIGATION_START_DATE, INVESTIGATION_STATUS,
-         investigator) %>%
+         investigator, BIRTH_DATE) %>%
   
   #rename ALL CAPS vars
   rename(case_id = CASE_ID,
          reporting_zipcode = REPORTING_ZIPCODE,
          investigation_start_date = INVESTIGATION_START_DATE,
-         investigation_status = INVESTIGATION_STATUS) %>%
+         investigation_status = INVESTIGATION_STATUS,
+         birth_date = BIRTH_DATE) %>%
   
   #Set geo cluster IDs to character format
   mutate(
@@ -39,6 +40,7 @@ wdrs_temp <- wdrs_temp %>%
            TRUE ~ NA_character_),
          
          investigation_start_date = as.Date(as.POSIXct(investigation_start_date, origin = "1970-01-01 00:00:00")),
+         birth_date = as.Date(as.POSIXct(birth_date, origin = "1970-01-01 00:00:00")),
          
          #set impossible dates to missing
          investigation_start_date = case_when(
