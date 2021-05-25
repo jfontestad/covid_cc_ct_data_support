@@ -20,7 +20,7 @@ kc_referral_form <- kc_cc_complete %>%
          chw_time_est, har_startdt,
          
          #CHW-collected demographics
-         chw_language, chw_language_other, chw_raceethnicity___1:chw_raceethnicity___29, other_asian, other_blackafrica, other_latinx, other_nhpi, other_nhpi_2) %>%
+         chw_language, chw_language_other, chw_raceethnicity___1:chw_raceethnicity___29, other_asian, other_blackafrica, other_latinx, other_nhpi, other_nhpi_2, chw_dob) %>%
   
   #Pull out dates from date-times (date-times are already in desired format)
   #Adaptation for HAR - set referral date equal to har_startdt if referral_timedt is null
@@ -189,7 +189,7 @@ doh_referral_form <- doh_cc_current_clustered %>%
     chw_time_est, har_startdt,
     
     #DOH-collected demographics
-    language_c, race_eth) %>%
+    language_c, date_of_birth_dob, race_eth) %>%
     
     #Pull out dates from date-times (date-times are already in desired format)
     #Adaptation for HAR - set referral date equal to har_startdt if referral_timedt is null
@@ -341,17 +341,24 @@ rm(doh_cc_test_ref)
 
 #### STEP 5: Normalize referral form demographics at household level - PHSKC assigned cases ####
 
-#For language - take maximum (selects non-English language over English)
-kc_referral_based_demo <- select(kc_referral_form, agency, arm, record_id, chw_language, chw_raceethnicity___1:chw_raceethnicity___29) %>%
+#For language - take maximum (selects non-English language over English), for DOB - take minimum (i.e. oldest household member)
+kc_referral_based_demo <- select(kc_referral_form, agency, arm, record_id, chw_language, chw_raceethnicity___1:chw_dob) %>%
   
   #Turn all zeroes to NA
   mutate_at(vars(chw_raceethnicity___1:chw_raceethnicity___29), ~na_if(., "0")) %>%
   
+  #Set invalidly formatted dates of birth to missing
+  mutate(chw_dob = case_when(str_detect(chw_dob, "-") == T ~ chw_dob, TRUE ~ NA_character_)) %>%
+  
   #Fill missing values with non-missing values
   group_by(arm, record_id) %>%
-  fill(chw_language:chw_raceethnicity___29, .direction = "downup") %>%
+  fill(chw_language:chw_dob, .direction = "downup") %>%
   
   mutate(
+    #Take minimum date of birth when multiple values exist for an arm-record ID
+    #Note ifelse prevents Inf values as compared to case_when
+    chw_dob = ifelse(sum(!is.na(chw_dob)) == 0, NA_character_, as.character(min(as.Date(chw_dob, origin = origin), na.rm = T))),
+    
     #Take maximum language when multiple values exist for an arm-record ID
     #Note ifelse prevents Inf values as compared to case_when
     chw_language = ifelse(sum(!is.na(chw_language)) == 0, NA_character_, as.character(max(as.integer(chw_language), na.rm = T)))
@@ -387,7 +394,38 @@ kc_referral_based_demo <- select(kc_referral_form, agency, arm, record_id, chw_l
     chw_raceethnicity___22 == 1 | chw_raceethnicity___23 == 1 | chw_raceethnicity___24 == 1 | chw_raceethnicity___25 == 1 |
       chw_raceethnicity___26 == 1 ~ 1L, TRUE ~ 0L),
   race_white = case_when(
-    chw_raceethnicity___21 == 1 | chw_raceethnicity___27 == 1 ~ 1L, TRUE ~ 0L)) %>%
+    chw_raceethnicity___21 == 1 | chw_raceethnicity___27 == 1 ~ 1L, TRUE ~ 0L),
+  
+  #Create additional race-specific variables
+  race_asian_indian = case_when(chw_raceethnicity___2 == 1 ~ 1L, TRUE ~ 0L),
+  race_chinese = case_when(chw_raceethnicity___3 == 1 ~ 1L, TRUE ~ 0L),
+  race_filipino = case_when(chw_raceethnicity___4 == 1 ~ 1L, TRUE ~ 0L),
+  race_japanese = case_when(chw_raceethnicity___5 == 1 ~ 1L, TRUE ~ 0L),
+  race_korean = case_when(chw_raceethnicity___6 == 1 ~ 1L, TRUE ~ 0L),
+  race_vietnamese = case_when(chw_raceethnicity___7 == 1 ~ 1L, TRUE ~ 0L),
+  race_cambodian = case_when(chw_raceethnicity___8 == 1 ~ 1L, TRUE ~ 0L),
+  race_thai = case_when(chw_raceethnicity___9 == 1 ~ 1L, TRUE ~ 0L),
+  race_asian_other = case_when(chw_raceethnicity___10 == 1 ~ 1L, TRUE ~ 0L),
+  
+  race_aa = case_when(chw_raceethnicity___11 == 1 ~ 1L, TRUE ~ 0L),
+  race_somali = case_when(chw_raceethnicity___12 == 1 ~ 1L, TRUE ~ 0L),
+  race_ethiopian = case_when(chw_raceethnicity___13 == 1 ~ 1L, TRUE ~ 0L),
+  race_eritrean = case_when(chw_raceethnicity___14 == 1 ~ 1L, TRUE ~ 0L),
+  race_kenyan = case_when(chw_raceethnicity___15 == 1 ~ 1L, TRUE ~ 0L),
+  race_black_or_african_other = case_when(chw_raceethnicity___16 == 1 ~ 1L, TRUE ~ 0L),
+  
+  race_mexican = case_when(chw_raceethnicity___17 == 1 ~ 1L, TRUE ~ 0L),
+  race_puerto_rican = case_when(chw_raceethnicity___18 == 1 ~ 1L, TRUE ~ 0L),
+  race_cuban = case_when(chw_raceethnicity___19 == 1 ~ 1L, TRUE ~ 0L),
+  race_latinx_other = case_when(chw_raceethnicity___20 == 1 ~ 1L, TRUE ~ 0L),
+  
+  race_mena = case_when(chw_raceethnicity___21 == 1 ~ 1L, TRUE ~ 0L),
+  
+  race_nh = case_when(chw_raceethnicity___22 == 1 ~ 1L, TRUE ~ 0L),
+  race_samoan = case_when(chw_raceethnicity___23 == 1 ~ 1L, TRUE ~ 0L),
+  race_marshallese = case_when(chw_raceethnicity___24 == 1 ~ 1L, TRUE ~ 0L),
+  race_guamanian = case_when(chw_raceethnicity___25 == 1 ~ 1L, TRUE ~ 0L),
+  race_nhpi_other = case_when(chw_raceethnicity___26 == 1 ~ 1L, TRUE ~ 0L)) %>%
   
   rowwise() %>%
   mutate(race_eth_sum = sum(c_across(race_aian:race_white), na.rm = T)) %>%
@@ -404,7 +442,13 @@ kc_referral_based_demo <- select(kc_referral_form, agency, arm, record_id, chw_l
       race_nhpi == 1 ~ "Native Hawaiian or Pacific Islander",
       race_white == 1 ~ "White",
       TRUE ~ NA_character_)
-  )
+  ) %>%
+  
+  #Drop original CHW race variables
+  select(-chw_raceethnicity___1:-other_nhpi_2) %>%
+  
+  #Normalize date of birth with DOH-assigned data
+  mutate(dob_norm = chw_dob)
     
 # QA to make sure no more than one row per arm-record ID
 kc_referral_based_demo_distinct_row_percent <- filter(kc_referral_based_demo %>% group_by(arm, record_id) %>% mutate(row_count = n()) %>% ungroup() %>% count(row_count) %>%
@@ -414,7 +458,7 @@ kc_referral_based_demo_distinct_row_percent <- filter(kc_referral_based_demo %>%
 #### STEP 6: Normalize referral form demographics at household level - DOH assigned cases ####
 
 #For DOB - take minimum (oldest household member) & for language - take maximum (selects non-English language over English)
-doh_referral_based_demo <- select(doh_referral_form, agency, arm, record_id, language_c, race_eth) %>%
+doh_referral_based_demo <- select(doh_referral_form, agency, arm, record_id, language_c, race_eth, date_of_birth_dob) %>%
             
   #Normalize language PHSKC-assigned data
   mutate(
@@ -430,15 +474,22 @@ doh_referral_based_demo <- select(doh_referral_form, agency, arm, record_id, lan
       TRUE ~ NA_character_),
     
     #Normalize race/ethnicity PHSKC-assigned data
-    race_eth_norm = case_when(race_eth == "Unknown" ~ NA_character_, TRUE ~ race_eth)) %>%
+    race_eth_norm = case_when(race_eth == "Unknown" ~ NA_character_, TRUE ~ race_eth),
   
-  select(-language_c, -race_eth) %>%
+    #Normalize dob with PHSKC-assigned data
+    dob_norm = date_of_birth_dob) %>%
+  
+  select(-language_c, -race_eth, -date_of_birth_dob) %>%
   
   #Fill missing values with non-missing values
   group_by(arm, record_id) %>%
-  fill(language_norm:race_eth_norm, .direction = "downup") %>%
+  fill(language_norm:dob_norm, .direction = "downup") %>%
   
   mutate(
+    #Take minimum date of birth when multiple values exist for an arm-record ID
+    #Note ifelse prevents Inf values as compared to case_when
+    dob_norm = ifelse(sum(!is.na(dob_norm)) == 0, NA_character_, as.character(min(as.Date(dob_norm, origin = origin), na.rm = T))),
+    
     #Take maximum language when multiple values exist for an arm-record ID
     #Note ifelse prevents Inf values as compared to case_when
     language_norm = ifelse(sum(!is.na(language_norm)) == 0, NA_character_, as.character(max(as.integer(language_norm), na.rm = T))),
@@ -473,7 +524,7 @@ doh_referral_based_demo_distinct_row_percent <- filter(doh_referral_based_demo %
 
 #### STEP 7: Bind PHSKC-assigned and DOH-assigned demographics ####
 complete_referral_based_demo <- bind_rows(kc_referral_based_demo, doh_referral_based_demo) %>%
-  select(agency, arm, record_id, race_eth_norm, language_norm, everything())
+  select(agency, arm, record_id, dob_norm, race_eth_norm, language_norm, everything())
 rm(kc_referral_based_demo, doh_referral_based_demo)
 
 
@@ -483,7 +534,7 @@ rm(kc_referral_based_demo, doh_referral_based_demo)
 #Filter out non-household member WDRS IDs before join
 wdrs_demo_household <- left_join(
   filter(complete_cc_wdrs, !(wdrs_id_type %in% c("wdrs_hh_exp", "wdrs_ic"))) %>% select(agency, arm, record_id, wdrs_id),
-  select(wdrs_final, case_id, language, lang_specify, race_eth, race_eth_sub_grp, reporting_zipcode, census_tractid),
+  select(wdrs_final, case_id, language, lang_specify, birth_date, race_eth, race_eth_sub_grp, reporting_zipcode, census_tractid),
   by = c("wdrs_id" = "case_id")
 )
 
@@ -524,6 +575,39 @@ wdrs_demo_household <- wdrs_demo_household %>%
     #Everything else set to missing
     TRUE ~ NA_character_),
   
+  #Create additional detailed race-specific variables
+  race_aian = case_when(race_eth == "American Indian or Alaskan Native, not hispanic" ~ 1L, TRUE ~ 0L),
+  race_asian = case_when(race_eth == "Asian, not hispanic" | race_eth_sub_grp %in% c("Cambodian", "Chinese", "Filipino", "Indian", "Japanese", "Korean", "Thai", "Vietnamese")
+                         ~ 1L, TRUE ~ 0L),
+  race_black = case_when(race_eth == "Black, not hispanic" | race_eth_sub_grp %in% c("African American", "Eritrean", "Ethiopian", "Kenyan", "Somali")
+                         ~ 1L, TRUE ~ 0L),
+  race_latino = case_when(race_eth == "Hispanic or Latino, any race" | race_eth_sub_grp %in% c("Cuban", "Mexican") ~ 1L, TRUE ~ 0L),
+  race_nhpi = case_when(race_eth == "Native Hawaiian or other Pacific Islander, not hispanic" | race_eth_sub_grp %in% c("Marshallese", "Native Hawaiian", "Samoan")
+                        ~ 1L, TRUE ~ 0L),
+  race_white = case_when(race_eth == "White, not hispanic" ~ 1L, TRUE ~ 0L),
+  
+  race_asian_indian = case_when(race_eth_sub_grp == "Indian" ~ 1L, TRUE ~ 0L),
+  race_chinese = case_when(race_eth_sub_grp == "Chinese" ~ 1L, TRUE ~ 0L),
+  race_filipino = case_when(race_eth_sub_grp == "Filipino" ~ 1L, TRUE ~ 0L),
+  race_japanese = case_when(race_eth_sub_grp == "Japanese" ~ 1L, TRUE ~ 0L),
+  race_korean = case_when(race_eth_sub_grp == "Korean" ~ 1L, TRUE ~ 0L),
+  race_vietnamese = case_when(race_eth_sub_grp == "Vietnamese" ~ 1L, TRUE ~ 0L),
+  race_cambodian = case_when(race_eth_sub_grp == "Cambodian" ~ 1L, TRUE ~ 0L),
+  race_thai = case_when(race_eth_sub_grp == "Thai" ~ 1L, TRUE ~ 0L),
+  
+  race_aa = case_when(race_eth_sub_grp == "African American" ~ 1L, TRUE ~ 0L),
+  race_somali = case_when(race_eth_sub_grp == "Somali" ~ 1L, TRUE ~ 0L),
+  race_ethiopian = case_when(race_eth_sub_grp == "Ethiopian" ~ 1L, TRUE ~ 0L),
+  race_eritrean = case_when(race_eth_sub_grp == "Eritrean" ~ 1L, TRUE ~ 0L),
+  race_kenyan = case_when(race_eth_sub_grp == "Kenyan" ~ 1L, TRUE ~ 0L),
+  
+  race_mexican = case_when(race_eth_sub_grp == "Mexican" ~ 1L, TRUE ~ 0L),
+  race_cuban = case_when(race_eth_sub_grp == "Cuban" ~ 1L, TRUE ~ 0L),
+
+  race_nh = case_when(race_eth_sub_grp == "Native Hawaiian" ~ 1L, TRUE ~ 0L),
+  race_samoan = case_when(race_eth_sub_grp == "Samoan" ~ 1L, TRUE ~ 0L),
+  race_marshallese = case_when(race_eth_sub_grp == "Marshallese" ~ 1L, TRUE ~ 0L),
+  
   #Language
   language_norm = case_when(
     language == "English" ~ "1",
@@ -548,6 +632,9 @@ wdrs_demo_household <- wdrs_demo_household %>%
     #Note ifelse prevents Inf values as compared to case_when
     language_norm = ifelse(sum(!is.na(language_norm)) == 0, NA_character_, as.character(max(as.integer(language_norm), na.rm = T))),
     
+    #Take minimum date of birth (i.e. oldest household member)
+    dob_norm = ifelse(sum(!is.na(birth_date)) == 0, NA_character_, as.character(min(as.Date(birth_date, origin = origin), na.rm = T))),
+    
     #Set race to multiple race if more than race reported at household
     race_eth_count = n_distinct(race_eth_norm),
     race_eth_norm = case_when(
@@ -558,7 +645,14 @@ wdrs_demo_household <- wdrs_demo_household %>%
     #Take min ZIP code and census tract
     reporting_zipcode = ifelse(sum(!is.na(reporting_zipcode)) == 0, NA_character_, min(reporting_zipcode, na.rm = T)),
     census_tractid = ifelse(sum(!is.na(census_tractid)) == 0, NA_character_, min(census_tractid, na.rm = T))) %>%
-  select(-race_eth_count) %>%
+  select(-race_eth_count, -birth_date) %>%
+  
+  #Take max of all race-specific variables
+  mutate_at(
+    vars(race_aian:race_marshallese),
+    ~(max(., na.rm = T))
+  ) %>%
+  
   ungroup() %>%
   distinct() %>%
   
@@ -583,9 +677,36 @@ rm(col_types)
 
 #Join to wdrs-based, household-level demographic data
 wdrs_demo_household <- left_join(wdrs_demo_household, select(seri_census, census_tractid, composite_score), by = c("census_tractid" = "census_tractid")) %>%
+  
+  #rename variables to differentiate from CC variables
   rename(seri_composite_score = composite_score,
          race_eth_norm_wdrs = race_eth_norm,
-         language_norm_wdrs = language_norm)
+         language_norm_wdrs = language_norm,
+         dob_norm_wdrs = dob_norm,
+         race_aian_wdrs = race_aian,
+         race_asian_wdrs = race_asian,
+         race_black_wdrs = race_black,
+         race_latino_wdrs = race_latino,
+         race_nhpi_wdrs = race_nhpi,
+         race_white_wdrs = race_white,
+         race_asian_indian_wdrs = race_asian_indian,
+         race_chinese_wdrs = race_chinese,
+         race_filipino_wdrs = race_filipino,
+         race_japanese_wdrs = race_japanese,
+         race_korean_wdrs = race_korean,
+         race_vietnamese_wdrs = race_vietnamese,
+         race_cambodian_wdrs = race_cambodian,
+         race_thai_wdrs = race_thai,
+         race_aa_wdrs = race_aa,
+         race_somali_wdrs = race_somali,
+         race_ethiopian_wdrs = race_ethiopian,
+         race_eritrean_wdrs = race_eritrean,
+         race_kenyan_wdrs = race_kenyan,
+         race_mexican_wdrs = race_mexican,
+         race_cuban_wdrs = race_cuban,
+         race_nh_wdrs = race_nh,
+         race_samoan_wdrs = race_samoan,
+         race_marshallese_wdrs = race_marshallese)
 
 rm(seri_census)
 
@@ -593,21 +714,42 @@ rm(seri_census)
 #### STEP 10: Combine referral-based demographics with A&I demographics ####
 complete_demo <- full_join(complete_referral_based_demo, wdrs_demo_household, by = c("agency", "arm", "record_id")) %>%
   
-  #Drop CHW-collected demo vars (too many fields for dataset utility)
-  select(-chw_language:-race_eth_sum) %>%
+  #Drop unneeded vars
+  select(-chw_language, -chw_dob, -race_eth_sum) %>%
   
-  #Replace missing referral-based demograpgic fields with data from A&I
+  #Replace missing referral-based demographic fields with data from A&I
   mutate(
-    race_eth_norm = case_when(
-      is.na(race_eth_norm) & !is.na(race_eth_norm_wdrs) ~ race_eth_norm_wdrs,
-      TRUE ~ race_eth_norm),
+    race_eth_norm = case_when(is.na(race_eth_norm) & !is.na(race_eth_norm_wdrs) ~ race_eth_norm_wdrs, TRUE ~ race_eth_norm),
+    language_norm = case_when(is.na(language_norm) & !is.na(language_norm_wdrs) ~ language_norm_wdrs, TRUE ~ language_norm),
+    dob_norm = case_when(is.na(dob_norm) & !is.na(dob_norm_wdrs) ~ dob_norm_wdrs, TRUE ~ dob_norm),
     
-    language_norm = case_when(
-      is.na(language_norm) & !is.na(language_norm_wdrs) ~ language_norm_wdrs,
-      TRUE ~ language_norm)) %>%
+    race_aian = case_when((is.na(race_aian) | race_aian == 0) & !is.na(race_aian_wdrs) ~ race_aian_wdrs, TRUE ~ race_aian),
+    race_asian = case_when((is.na(race_asian) | race_asian == 0) & !is.na(race_asian_wdrs) ~ race_asian_wdrs, TRUE ~ race_asian),
+    race_black = case_when((is.na(race_black) | race_black == 0) & !is.na(race_black_wdrs) ~ race_black_wdrs, TRUE ~ race_black),
+    race_latino = case_when((is.na(race_latino) | race_latino == 0) & !is.na(race_latino_wdrs) ~ race_latino_wdrs, TRUE ~ race_latino),
+    race_nhpi = case_when((is.na(race_nhpi) | race_nhpi == 0) & !is.na(race_nhpi_wdrs) ~ race_nhpi_wdrs, TRUE ~ race_nhpi),
+    race_white = case_when((is.na(race_white) | race_white == 0) & !is.na(race_white_wdrs) ~ race_white_wdrs, TRUE ~ race_white),
+    race_asian_indian = case_when((is.na(race_asian_indian) | race_asian_indian == 0) & !is.na(race_asian_indian_wdrs) ~ race_asian_indian_wdrs, TRUE ~ race_asian_indian),
+    race_chinese = case_when((is.na(race_chinese) | race_chinese == 0) & !is.na(race_chinese_wdrs) ~ race_chinese_wdrs, TRUE ~ race_chinese),
+    race_filipino = case_when((is.na(race_filipino) | race_filipino == 0) & !is.na(race_filipino_wdrs) ~ race_filipino_wdrs, TRUE ~ race_filipino),
+    race_japanese = case_when((is.na(race_japanese) | race_japanese == 0) & !is.na(race_japanese_wdrs) ~ race_japanese_wdrs, TRUE ~ race_japanese),
+    race_korean = case_when((is.na(race_korean) | race_korean == 0) & !is.na(race_korean_wdrs) ~ race_korean_wdrs, TRUE ~ race_korean),
+    race_vietnamese = case_when((is.na(race_vietnamese) | race_vietnamese == 0) & !is.na(race_vietnamese_wdrs) ~ race_vietnamese_wdrs, TRUE ~ race_vietnamese),
+    race_cambodian = case_when((is.na(race_cambodian) | race_cambodian == 0) & !is.na(race_cambodian_wdrs) ~ race_cambodian_wdrs, TRUE ~ race_cambodian),
+    race_thai = case_when((is.na(race_thai) | race_thai == 0) & !is.na(race_thai_wdrs) ~ race_thai_wdrs, TRUE ~ race_thai),
+    race_aa = case_when((is.na(race_aa) | race_aa == 0) & !is.na(race_aa_wdrs) ~ race_aa_wdrs, TRUE ~ race_aa),
+    race_somali = case_when((is.na(race_somali) | race_somali == 0) & !is.na(race_somali_wdrs) ~ race_somali_wdrs, TRUE ~ race_somali),
+    race_ethiopian = case_when((is.na(race_ethiopian) | race_ethiopian == 0) & !is.na(race_ethiopian_wdrs) ~ race_ethiopian_wdrs, TRUE ~ race_ethiopian),
+    race_eritrean = case_when((is.na(race_eritrean) | race_eritrean == 0) & !is.na(race_eritrean_wdrs) ~ race_eritrean_wdrs, TRUE ~ race_eritrean),
+    race_kenyan = case_when((is.na(race_kenyan) | race_kenyan == 0) & !is.na(race_kenyan_wdrs) ~ race_kenyan_wdrs, TRUE ~ race_kenyan),
+    race_mexican = case_when((is.na(race_mexican) | race_mexican == 0) & !is.na(race_mexican_wdrs) ~ race_mexican_wdrs, TRUE ~ race_mexican),
+    race_cuban = case_when((is.na(race_cuban) | race_cuban == 0) & !is.na(race_cuban_wdrs) ~ race_cuban_wdrs, TRUE ~ race_cuban),
+    race_nh = case_when((is.na(race_nh) | race_nh == 0) & !is.na(race_nh_wdrs) ~ race_nh_wdrs, TRUE ~ race_nh),
+    race_samoan = case_when((is.na(race_samoan) | race_samoan == 0) & !is.na(race_samoan_wdrs) ~ race_samoan_wdrs, TRUE ~ race_samoan),
+    race_marshallese = case_when((is.na(race_marshallese) | race_marshallese == 0) & !is.na(race_marshallese_wdrs) ~ race_marshallese_wdrs, TRUE ~ race_marshallese)) %>%
   
   #Drop helper vars
-  select(-race_eth_norm_wdrs, -language_norm_wdrs)
+  select(-race_eth_norm_wdrs, -language_norm_wdrs, -dob_norm_wdrs, -race_aian_wdrs:-race_marshallese_wdrs)
 
 rm(complete_referral_based_demo, wdrs_demo_household)
 
