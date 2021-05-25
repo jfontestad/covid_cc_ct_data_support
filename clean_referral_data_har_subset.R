@@ -63,4 +63,4 @@ complete_har_form_qa_check <- count(filter(complete_har_form, is.na(har_startdt)
 
 
 #### STEP 4: Join to household-level demographics ####
-complete_har_form_with_demo <- left_join(complete_har_form, complete_demo, by = c("agency", "arm", "record_id"))
+complete_har_form_with_demo <- left_join(complete_har_form, complete_demo, by = c("agency", "arm", "record_id")) %>% distinct()

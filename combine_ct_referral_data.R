@@ -7,7 +7,7 @@
 
 final_data_by_household <- left_join(complete_cc_household, complete_referrals_by_household, by = c("agency", "arm", "record_id"))
 
-final_data_by_household <- left_join(final_data_by_household, select(complete_demo, -hh_size), by = c("agency", "arm", "record_id"))
+final_data_by_household <- left_join(final_data_by_household, select(complete_demo, -hh_size), by = c("agency", "arm", "record_id")) %>% distinct()
 
 ## Convert all NAs to 0s for households with no referrals
 final_data_by_household <- final_data_by_household %>%
