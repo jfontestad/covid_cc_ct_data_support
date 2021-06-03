@@ -208,7 +208,7 @@ email <-
 # Send email
 smtp_send(email = email,
           #to = c("eli.kern@kingcounty.gov"),
-          to = c("eli.kern@kingcounty.gov", "krijohnson@kingcounty.gov", "SHernandez@kingcounty.gov"),
+          to = c("eli.kern@kingcounty.gov", "krijohnson@kingcounty.gov", "SHernandez@kingcounty.gov", "n-hcollins@kingcounty.gov", "Julia.Hood@kingcounty.gov"),
           from = creds_key("outlook")$user,
           subject = subject,
           credentials = creds_key("outlook")
