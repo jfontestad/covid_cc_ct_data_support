@@ -127,6 +127,8 @@ kc_cc_archive <- kc_cc_archive_raw %>%
   if("har_incoming_calls_followup" %in% colnames(kc_cc_archive) == FALSE) {kc_cc_archive <- kc_cc_archive %>% mutate(har_incoming_calls_followup = NA_character_)}
   if("call_arm3_endiq" %in% colnames(kc_cc_archive) == FALSE) {kc_cc_archive <- kc_cc_archive %>% mutate(call_arm3_endiq = NA_character_)}
   if("vx_assist_arm3" %in% colnames(kc_cc_archive) == FALSE) {kc_cc_archive <- kc_cc_archive %>% mutate(vx_assist_arm3 = NA_character_)}
+  if("vx_call_dispo_arm13" %in% colnames(kc_cc_archive) == FALSE) {kc_cc_archive <- kc_cc_archive %>% mutate(vx_call_dispo_arm13 = NA_character_)}
+  if("vx_call_dispo_arm2" %in% colnames(kc_cc_archive) == FALSE) {kc_cc_archive <- kc_cc_archive %>% mutate(vx_call_dispo_arm2 = NA_character_)}
 
 #### STEP 4: Compare columns in current and archived Household Contact Tracing data, and bind
 kc_cc_archive_current_coldiff <- nrow(janitor::compare_df_cols(kc_cc_archive, kc_cc_current, return = "mismatch", bind_method = "rbind"))
